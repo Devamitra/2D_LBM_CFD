@@ -128,7 +128,8 @@ class Lattice:
 
     def boundary_condition(self):
         # sets the preset boundary condition
-        self.bulk_velocity[1, :] = [1., 0]
+        self.bulk_velocity[1, :] = [.9, 0]
+        # self.bulk_velocity[self.nx, :] = [.9, 0]
         # self.bulk_velocity[self.nx+1, :] = [1., 0]
 
     def collision(self):
@@ -202,7 +203,7 @@ class Lattice:
             self.stream()
             # self.refresh_values()
             self.new_velocity()
-            # self.boundary_condition()
+            self.boundary_condition()
             self.equilibrium_function()
             self.collision()
             # self.forcing_term()
@@ -216,18 +217,34 @@ class Lattice:
 
     def graph_u_vector(self, return_val=False):
         # graphs the microscopic velocity of the current time step
-        # or initializes the vector field if return_val is True
+        # or initialises the vector field if return_val is True
         x, y = np.meshgrid(np.linspace(1, self.nx+2, self.nx), np.linspace(1, self.ny+2, self.ny))
-        Q = plt.quiver(y, x, self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 0], self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 1], scale=100, width=0.002)
+        Q = plt.quiver(y, x, self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 0], self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 1], scale=10, width=0.002)
         if return_val:
             return Q, x, y
 
+        plt.show()
+
+    def graph_heatmap(self, return_val=False):
+        # graphs the magnitude of microscopic velocity of current time step as heatmap
+        # or initialise the heatmap if return_val is True
+        data = np.transpose(np.sqrt(self.bulk_velocity[:, :, 0]**2 + self.bulk_velocity[:, :, 1]**2))
+        Q = plt.imshow(data)
+        del data
+        if return_val:
+            return Q
         plt.show()
 
     def update_vector(self, num, Q, x, y):
         # updates the vector in the vector field for animation
         self.simulate(1)
         Q.set_UVC(self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 0], self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 1])
+        return Q
+
+    def update_heatmap(self, num, Q, x, y):
+        self.simulate(1)
+        data = np.transpose(np.sqrt(self.bulk_velocity[:, :, 0]**2 + self.bulk_velocity[:, :, 1]**2))
+        Q.set_data(data)
         return Q
 
     def graph_u_streamline(self):
@@ -249,14 +266,14 @@ class Lattice:
 if __name__ == "__main__":
     # help(__import__(__name__))
 
-    a = Lattice(20, 20)
-    a.set_tao(2.5)
-    matrix = np.zeros((22, 22), bool)
+    a = Lattice(70, 50)
+    a.set_tao(3)
+    matrix = np.zeros((72, 52), bool)
     # matrix[:, 0] = True
     # matrix[1, :] = True
     # matrix[20, :] = True
-    # matrix[:, 21] = True
-    matrix[8:12, 8:12] = True
+    # matrix[:, 51] = True
+    matrix[8:12, 20:30] = True
 
     a.set_obstacle(matrix)
 
@@ -270,9 +287,16 @@ if __name__ == "__main__":
     """
 
     fig = plt.figure(figsize=(15, 6))
-    q, x, y = a.graph_u_vector(return_val=True)
+    # q, x, y = a.graph_u_vector(return_val=True)
 
+    """
     # runs the vector field as an animation
     anim = animation.FuncAnimation(fig, a.update_vector, fargs=(q, x, y), interval=50, blit=False)
+    plt.show()
+    """
+    p = a.graph_heatmap(return_val=True)
+    x = 1
+    y = 2
+    anim2 = animation.FuncAnimation(fig, a.update_heatmap, fargs=(p, x, y), interval=50, blit=False)
     plt.show()
     # """
