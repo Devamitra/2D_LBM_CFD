@@ -72,7 +72,10 @@ class Lattice:
         # working out new microscopic velocity using newly initialised distribution function
         self.new_velocity()
 
-        self.file = "temp.json"
+        self.file = ""
+        self.export = False
+
+        self._stop = False
 
     def initialise_f(self):
         # initialises distribution function
@@ -201,11 +204,12 @@ class Lattice:
         self.f[:, :, 6] -= f_term
         self.f[:, :, 7] -= f_term
 
-    def simulate(self, nt, export=False):
+    def simulate(self, nt):
         # runs the simulation for nt number of steps, where dt = 1
-        if export:
+        if self.export:
             with open(self.file, "w+") as file:
-                file.write('[{"tao":'+str(self.relax_time)+"}")
+                file.write('[{"tao":'+str(self.relax_time)+',"dimension":'+str(list(self.obstacle.shape))
+                           + ',"viscosity":'+str(self.viscosity)+',"density":'+str(self.rho)+'}')
                 for t in range(nt):
                     file.write(',\n{"'+str(t)+'":'+str(self.bulk_velocity.tolist())+"}")
                     self.stream()
@@ -213,6 +217,8 @@ class Lattice:
                     self.boundary_condition()
                     self.equilibrium_function()
                     self.collision()
+                    if self._stop:
+                        break
                     # self.forcing_term()
                     # self.graph_u_streamline()
                     # self.graph_u_vector()
@@ -227,10 +233,11 @@ class Lattice:
                 self.boundary_condition()
                 self.equilibrium_function()
                 self.collision()
+                if self._stop:
+                    break
                 # self.forcing_term()
                 # self.graph_u_streamline()
                 # self.graph_u_vector()`
-
 
     def graph_rho(self):
         # represents density as a heatmap
@@ -284,8 +291,13 @@ class Lattice:
         self.relax_time = tao
         self.viscosity = ((2 * tao) - 1) / 6
 
-    def save_to(self, file_path):
+    def set_viscosity(self, viscosity):
+        self.viscosity = viscosity
+        self.relax_time = ((6 * viscosity) + 1) / 2
+
+    def save_to(self, file_path="temp.json"):
         self.file = file_path
+        self.export = True
 
 
 
@@ -304,11 +316,12 @@ if __name__ == "__main__":
     matrix[8:12, 20:30] = True
 
     a.set_obstacle(matrix)
+    a.save_to()
 
     # """
     # a.graph_u_streamline()
     #a.graph_u_vector()
-    a.simulate(100, export=True)
+    a.simulate(100)
     # a.graph_u_streamline()
     #plt.show()
 
