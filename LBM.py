@@ -2,9 +2,11 @@
 module for simulation the motion an incompressible fluid using D2Q9 Lattice Boltzmann method
 """
 
-import numpy as np
-from matplotlib import pyplot as plt
+import json
+import numpy as np                     # pip install numpy
+from matplotlib import pyplot as plt   # pip install matplotlib
 from matplotlib import animation
+
 
 
 class Lattice:
@@ -18,7 +20,7 @@ class Lattice:
     viscosity : float, viscosity of the fluid
 
     Methods
-    ____________
+    -------------
     set_obstacle(bool_matrix) : takes a boolean matrix of the same size as lattice to represent an obstacle
     set_tao(tao) : sets the relaxation time externally
 
@@ -69,6 +71,8 @@ class Lattice:
         self.initialise_f()
         # working out new microscopic velocity using newly initialised distribution function
         self.new_velocity()
+
+        self.file = "temp.json"
 
     def initialise_f(self):
         # initialises distribution function
@@ -197,18 +201,36 @@ class Lattice:
         self.f[:, :, 6] -= f_term
         self.f[:, :, 7] -= f_term
 
-    def simulate(self, nt):
+    def simulate(self, nt, export=False):
         # runs the simulation for nt number of steps, where dt = 1
-        for t in range(nt):
-            self.stream()
-            # self.refresh_values()
-            self.new_velocity()
-            self.boundary_condition()
-            self.equilibrium_function()
-            self.collision()
-            # self.forcing_term()
-            # self.graph_u_streamline()
-            # self.graph_u_vector()
+        if export:
+            with open(self.file, "w+") as file:
+                file.write('[{"tao":'+str(self.relax_time)+"}")
+                for t in range(nt):
+                    file.write(',\n{"'+str(t)+'":'+str(self.bulk_velocity.tolist())+"}")
+                    self.stream()
+                    self.new_velocity()
+                    self.boundary_condition()
+                    self.equilibrium_function()
+                    self.collision()
+                    # self.forcing_term()
+                    # self.graph_u_streamline()
+                    # self.graph_u_vector()
+
+                file.write("]")
+
+        else:
+            for t in range(nt):
+                self.stream()
+                # self.refresh_values()
+                self.new_velocity()
+                self.boundary_condition()
+                self.equilibrium_function()
+                self.collision()
+                # self.forcing_term()
+                # self.graph_u_streamline()
+                # self.graph_u_vector()`
+
 
     def graph_rho(self):
         # represents density as a heatmap
@@ -219,7 +241,7 @@ class Lattice:
         # graphs the microscopic velocity of the current time step
         # or initialises the vector field if return_val is True
         x, y = np.meshgrid(np.linspace(1, self.nx+2, self.nx), np.linspace(1, self.ny+2, self.ny))
-        Q = plt.quiver(y, x, self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 0], self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 1], scale=10, width=0.002)
+        Q = plt.quiver(y, x, self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 0], self.bulk_velocity[1:self.nx + 1, 1:self.ny + 1, 1], scale=50, width=0.002)
         if return_val:
             return Q, x, y
 
@@ -255,12 +277,18 @@ class Lattice:
 
     def set_obstacle(self, bool_matrix):
         # sets the obstacle with boolean matrix
-        self.obstacle = bool_matrix
+        self.obstacle[1:-1, 1:-1] = bool_matrix
 
     def set_tao(self, tao):
         # sets relaxation time and redefines viscosity accordingly, dt = 1
         self.relax_time = tao
         self.viscosity = ((2 * tao) - 1) / 6
+
+    def save_to(self, file_path):
+        self.file = file_path
+
+
+
 
 
 if __name__ == "__main__":
@@ -268,7 +296,7 @@ if __name__ == "__main__":
 
     a = Lattice(70, 50)
     a.set_tao(3)
-    matrix = np.zeros((72, 52), bool)
+    matrix = np.zeros((70, 50), bool)
     # matrix[:, 0] = True
     # matrix[1, :] = True
     # matrix[20, :] = True
@@ -277,26 +305,26 @@ if __name__ == "__main__":
 
     a.set_obstacle(matrix)
 
-    """
+    # """
     # a.graph_u_streamline()
-    a.graph_u_vector()
-    a.simulate(10)
+    #a.graph_u_vector()
+    a.simulate(100, export=True)
     # a.graph_u_streamline()
-    plt.show()
+    #plt.show()
 
     """
 
     fig = plt.figure(figsize=(15, 6))
     # q, x, y = a.graph_u_vector(return_val=True)
 
-    """
+
     # runs the vector field as an animation
     anim = animation.FuncAnimation(fig, a.update_vector, fargs=(q, x, y), interval=50, blit=False)
     plt.show()
-    """
+
     p = a.graph_heatmap(return_val=True)
     x = 1
     y = 2
     anim2 = animation.FuncAnimation(fig, a.update_heatmap, fargs=(p, x, y), interval=50, blit=False)
     plt.show()
-    # """
+    """
